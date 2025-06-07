@@ -3,6 +3,7 @@ import React, { useState, useRef, useEffect } from "react";
 function App() {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
+  const [model, setModel] = useState("deepseek"); // "deepseek" or "mixtral"
   const chatEndRef = useRef(null);
 
   const handleSend = () => {
@@ -11,7 +12,15 @@ function App() {
     const newUserMessage = { sender: "user", text: input };
     setMessages((prev) => [...prev, newUserMessage]);
 
-    fetch("http://127.0.0.1:8000/api/chat/", {
+    // Choose endpoint based on selected model
+    const endpoint =
+      // model === "deepseek" ? "http://127.0.0.1:8000/api/chat/" : "http://127.0.0.1:8000/api/groq-chat/";
+      model === "deepseek"
+        ? "http://127.0.0.1:8000/api/chat/"
+        : model === "graq-chat-two" // Added this condition
+          ? "http://127.0.0.1:8000/api/graq-chat-two/" // And its corresponding URL
+          : "http://127.0.0.1:8000/api/groq-chat/";
+    fetch(endpoint, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -29,23 +38,35 @@ function App() {
       .catch((error) => {
         const errorMsg = {
           sender: "bot",
-          text: "❌ Error talking to backend: " + error.message,
+          text: "❌ Error: " + error.message,
         };
         setMessages((prev) => [...prev, errorMsg]);
       });
 
-
     setInput("");
   };
 
-  // Scroll to bottom on new message
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
+  const handleModelChange = (e) => {
+    setModel(e.target.value);
+    setMessages([]); // clear chat when switching models
+  };
+
   return (
     <div style={styles.container}>
       <h2 style={styles.heading}>💬 AI Chat</h2>
+
+      <div style={styles.dropdownContainer}>
+        <label style={styles.label}>Choose Model: </label>
+        <select value={model} onChange={handleModelChange} style={styles.select}>
+          <option value="deepseek">🔹 DeepSeek (OpenRouter)</option>
+          <option value="mixtral">🔸 Mixtral (Groq)</option>
+          <option value="groq-chat-two">🔸 Groq Second</option>
+        </select>
+      </div>
 
       <div style={styles.chatBox}>
         {messages.map((msg, i) => (
@@ -54,7 +75,7 @@ function App() {
             style={{
               ...styles.message,
               alignSelf: msg.sender === "user" ? "flex-end" : "flex-start",
-              backgroundColor: msg.sender === "user" ? "#d1e7dd" : "#e2e3e5",
+              backgroundColor: msg.sender === "user" ? "#d1e7dd" : "#f5f5f5",
             }}
           >
             {msg.text}
@@ -85,15 +106,31 @@ const styles = {
     maxWidth: "600px",
     height: "100vh",
     margin: "0 auto",
-    padding: "2rem 1rem",
     fontFamily: "Segoe UI, sans-serif",
     display: "flex",
     flexDirection: "column",
+    padding: "1rem",
   },
   heading: {
     textAlign: "center",
     color: "#333",
     marginBottom: "1rem",
+  },
+  dropdownContainer: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: "1rem",
+    gap: "0.5rem",
+  },
+  label: {
+    fontWeight: "bold",
+  },
+  select: {
+    padding: "0.4rem",
+    fontSize: "1rem",
+    borderRadius: "6px",
+    border: "1px solid #ccc",
   },
   chatBox: {
     flex: 1,
